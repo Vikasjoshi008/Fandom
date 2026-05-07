@@ -7,6 +7,15 @@ import { OAuth2Client } from 'google-auth-library';
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const router = express.Router();
 
+// Helper function to set the cookie
+const setTokenCookie = (res, token) => {
+    res.cookie('token', token, {
+        httpOnly: true,     // Protects against XSS
+        secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
+        sameSite: 'strict', // Protects against CSRF
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+};
 
 // SIGNUP
 router.post("/signup", async (req, res) => {
@@ -21,17 +30,17 @@ router.post("/signup", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new User({ username, email, password: hashedPassword, age });
         await newUser.save();
-        res.status(201).json({ message: "User created!" });
+
+        res.status(201).json({ message: "User created!", success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
-        throw new CustomError("Try again later...");
     }
 });
 
 // LOGIN
 router.post("/login", async (req, res) => {
     try {
-        const { username, password, email } = req.body;
+        const { username, password } = req.body;
         const user = await User.findOne({ username });
         if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -43,23 +52,29 @@ router.post("/login", async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: "1d",
         });
-        res.status(200).json({ token, user: { username: user.username, email: user.email } });
+
+        // Set the cookie instead of sending token in JSON
+        setTokenCookie(res, token);
+
+        res.status(200).json({
+            success: true,
+            user: { username: user.username, email: user.email }
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+// GOOGLE AUTH
 router.post('/google', async (req, res) => {
     try {
         const { token } = req.body;
-
         const ticket = await client.verifyIdToken({
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
 
         const { name, email, picture, sub } = ticket.getPayload();
-
         let user = await User.findOne({ email });
 
         if (!user) {
@@ -74,19 +89,26 @@ router.post('/google', async (req, res) => {
 
         const appToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
+        // Set the cookie
+        setTokenCookie(res, appToken);
+
         res.status(200).json({
-            token: appToken,
+            success: true,
             user: {
                 username: user.username,
                 email: user.email,
                 avatar: user.avatar
             }
         });
-
     } catch (err) {
         console.error("Google Auth Error:", err);
         res.status(500).json({ message: "Google Authentication failed" });
     }
+});
+
+// LOGOUT - New route to clear the cookie
+router.post("/logout", (req, res) => {
+    res.clearCookie("token").json({ message: "Logged out successfully" });
 });
 
 export default router;
