@@ -1,0 +1,28 @@
+/* Responsive adjustments for the Fandom Auth UI */
+@import "tailwindcss";
+
+@media (max-width: 768px) {
+  .custom-responsive-container {
+    margin-top: 1.5rem;
+    width: 95%;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-responsive-container h2 {
+    font-size: 1.1rem;
+  }
+
+  /* Ensure inputs don't zoom on mobile focus */
+  input {
+    font-size: 16px !important;
+  }
+}
+
+/* Custom shadow to mimic Fandom's floating effect */
+.custom-responsive-container {
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.3),
+    0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
