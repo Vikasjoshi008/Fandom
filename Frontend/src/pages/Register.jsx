@@ -95,12 +95,33 @@ export default function Register() {
           </h2>
           <div className="flex justify-center border p-2 rounded cursor-pointer hover:bg-gray-50 transition">
             <GoogleLogin
-              onSuccess={(res) =>
-                axios.post("http://localhost:5000/api/auth/google", {
-                  token: res.credential,
-                })
-              }
-              onError={() => console.log("Google Register Failed")}
+              onSuccess={async (credentialResponse) => {
+                setIsLoading(true); // Show loader while backend processes
+                try {
+                  const response = await axios.post(
+                    "http://localhost:5000/api/auth/google",
+                    { token: credentialResponse.credential },
+                    { withCredentials: true }, // Ensures cookie is set in browser
+                  );
+
+                  if (response.data.success) {
+                    console.log("Google Registration/Login Success");
+                    navigate("/home"); // Redirect to home page
+                  }
+                } catch (err) {
+                  console.error("Google Auth Error:", err);
+                  alert(
+                    err.response?.data?.message ||
+                      "Google registration failed.",
+                  );
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              onError={() => {
+                console.log("Google Auth Failed");
+                alert("Google authentication failed. Please try again.");
+              }}
             />
           </div>
         </div>
