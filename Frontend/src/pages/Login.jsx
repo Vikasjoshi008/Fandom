@@ -70,10 +70,23 @@ export default function Login() {
             {/* Google Sign In Wrapper */}
             <div className="w-full border border-gray-300 rounded flex justify-center py-1 hover:bg-gray-50 cursor-pointer">
               <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                  axios.post("http://localhost:5000/api/auth/google", {
-                    token: credentialResponse.credential,
-                  });
+                onSuccess={async (credentialResponse) => {
+                  try {
+                    const response = await axios.post(
+                      "http://localhost:5000/api/auth/google",
+                      { token: credentialResponse.credential },
+                      { withCredentials: true }, // Crucial for cookies!
+                    );
+
+                    // Check if the backend returned success
+                    if (response.data.success) {
+                      console.log("Google Login Success");
+                      navigate("/home"); // This is what triggers the redirect
+                    }
+                  } catch (err) {
+                    console.error("Google Auth Error:", err);
+                    alert("Google login failed. Please try again.");
+                  }
                 }}
                 onError={() => console.log("Login Failed")}
               />
