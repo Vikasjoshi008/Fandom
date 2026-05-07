@@ -61,6 +61,27 @@ export default function Register() {
     }
   };
 
+  const handleGoogleLogin = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/google",
+        { token: credentialResponse.credential },
+        { withCredentials: true },
+      );
+
+      if (response.data.success) {
+        console.log("Google Registration/Login Success");
+        navigate("/home");
+      }
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      alert(err.response?.data?.message || "Google registration failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#28001a] font-sans flex flex-col items-center">
       <div className="w-full bg-[#5f003f] py-8 px-4 text-center relative">
@@ -95,29 +116,7 @@ export default function Register() {
           </h2>
           <div className="flex justify-center border p-2 rounded cursor-pointer hover:bg-gray-50 transition">
             <GoogleLogin
-              onSuccess={async (credentialResponse) => {
-                setIsLoading(true); // Show loader while backend processes
-                try {
-                  const response = await axios.post(
-                    "http://localhost:5000/api/auth/google",
-                    { token: credentialResponse.credential },
-                    { withCredentials: true }, // Ensures cookie is set in browser
-                  );
-
-                  if (response.data.success) {
-                    console.log("Google Registration/Login Success");
-                    navigate("/home"); // Redirect to home page
-                  }
-                } catch (err) {
-                  console.error("Google Auth Error:", err);
-                  alert(
-                    err.response?.data?.message ||
-                      "Google registration failed.",
-                  );
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
+              onSuccess={handleGoogleLogin}
               onError={() => {
                 console.log("Google Auth Failed");
                 alert("Google authentication failed. Please try again.");
